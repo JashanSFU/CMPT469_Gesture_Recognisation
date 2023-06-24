@@ -42,8 +42,8 @@ def get_args():
 
 
 def main():
-    lastGesturesTime = 0
-    timeBetweenGestures = float('inf')
+    lastGestures = None
+    # timeBetweenGestures = float('inf')
     # currentGestureTime = None
     # Argument parsing #################################################################
     args = get_args()
@@ -103,15 +103,43 @@ def main():
 
     #  ########################################################################
     mode = 0
-
     # palms facing detection details
-    twoHands = {}
-    while True:
+    arrayOfGestureDetails = []
+    for i in range(40):
+        twoHands = {}
         twoHands['detected'] = False
-        twoHands['firstHandGesture'] = None
-        twoHands['secondHandGesture'] = None
-        twoHands['firstHandSize'] = 0.0
-        twoHands['secondHandSize'] = 0.0
+        twoHands['leftHandGesture'] = None
+        twoHands['rightHandGesture'] = None
+        twoHands['leftHandLocation'] = None
+        twoHands['rightHandLocation'] = None
+        twoHands['leftHandSize'] = 0.0
+        twoHands['rightHandSize'] = 0.0
+        twoHands['handDistanceSame'] = False
+        arrayOfGestureDetails.append(twoHands)
+    frame = 0
+    while True:
+        frame += 1
+        for i in range(39):
+            
+            arrayOfGestureDetails[i]['detected'] = arrayOfGestureDetails[i+1]['detected']
+            arrayOfGestureDetails[i]['leftHandGesture'] = arrayOfGestureDetails[i+1]['leftHandGesture'] 
+            arrayOfGestureDetails[i]['rightHandGesture'] = arrayOfGestureDetails[i+1]['rightHandGesture']
+            arrayOfGestureDetails[i]['leftHandLocation'] = arrayOfGestureDetails[i+1]['leftHandLocation']
+            arrayOfGestureDetails[i]['rightHandLocation'] = arrayOfGestureDetails[i+1]['rightHandLocation']
+            arrayOfGestureDetails[i]['leftHandSize'] = arrayOfGestureDetails[i+1]['leftHandSize']
+            arrayOfGestureDetails[i]['rightHandSize'] = arrayOfGestureDetails[i+1]['rightHandSize']
+            arrayOfGestureDetails[i]['handDistanceSame'] = arrayOfGestureDetails[i+1]['handDistanceSame'] 
+        # for i in range(20):
+        i = 39
+        arrayOfGestureDetails[i]['detected'] = False
+        arrayOfGestureDetails[i]['leftHandGesture'] = None
+        arrayOfGestureDetails[i]['rightHandGesture'] = None
+        arrayOfGestureDetails[i]['leftHandLocation'] = None
+        arrayOfGestureDetails[i]['rightHandLocation'] = None
+        arrayOfGestureDetails[i]['leftHandSize'] = 0.0
+        arrayOfGestureDetails[i]['rightHandSize'] = 0.0
+        arrayOfGestureDetails[i]['handDistanceSame'] = False
+        
         fps = cvFpsCalc.get()
 
         # Process Key (ESC: end) #################################################
@@ -137,7 +165,7 @@ def main():
         #  ####################################################################
         if results.multi_hand_landmarks is not None:
             if len(results.multi_hand_landmarks) == 3:
-                twoHands['detected'] = True 
+                arrayOfGestureDetails[i]['detected'] = True 
             for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
                                                   results.multi_handedness):
                 # Bounding box calculation
@@ -145,11 +173,6 @@ def main():
                 # Landmark calculation
                 landmark_list = calc_landmark_list(debug_image, hand_landmarks)
 
-                # if(twoHands['detected'] == True):
-                if twoHands['firstHandSize'] == 0.0:
-                    twoHands['firstHandSize'] = distance(landmark_list)
-                else:
-                    twoHands['secondHandSize'] = distance(landmark_list)
                 # Conversion to relative coordinates / normalized coordinates
                 pre_processed_landmark_list = pre_process_landmark(
                     landmark_list)
@@ -183,12 +206,19 @@ def main():
                 debug_image = draw_landmarks(debug_image, landmark_list)
                 
                 # feature play detection
-                if hand_sign_id == 4:
-                    if twoHands['firstHandGesture'] == None:
-                        twoHands['firstHandGesture'] = True
-                    else:
-                        twoHands['secondHandGesture'] = True
-                
+                # Hand Location
+                # Hand Size
+                # print(handedness)
+                if handedness.classification[0].label[0:] == 'Left':
+                    arrayOfGestureDetails[i]['leftHandGesture'] = hand_sign_id
+                    arrayOfGestureDetails[i]['leftHandLocation'] = landmark_list[0] #calc_location(landmark_list)
+                    arrayOfGestureDetails[i]['leftHandSize'] = distance(landmark_list)
+                else:
+                    arrayOfGestureDetails[i]['rightHandLocation'] = landmark_list[0] #calc_location(landmark_list)
+                    arrayOfGestureDetails[i]['rightHandSize'] = distance(landmark_list)
+                    arrayOfGestureDetails[i]['rightHandGesture'] = hand_sign_id
+ 
+
                 debug_image = draw_info_text(
                     debug_image,
                     brect,
@@ -202,25 +232,85 @@ def main():
         debug_image = draw_point_history(debug_image, point_history)
         debug_image = draw_info(debug_image, fps, mode, number)
 
-        if twoHands['secondHandGesture'] == True and twoHands['secondHandGesture'] == True:
-            ratioFirstBySecond = twoHands['firstHandSize']/twoHands['secondHandSize']
-            ratioSecondByFirst = twoHands['secondHandSize']/twoHands['firstHandSize']
+        # if arrayOfGestureDetails[19]['rightHandGesture'] == 4 and arrayOfGestureDetails[19]['rightHandGesture'] == 4:
+        if arrayOfGestureDetails[i]['leftHandSize'] != 0 and arrayOfGestureDetails[i]['rightHandSize'] != 0:
+            ratioFirstBySecond = arrayOfGestureDetails[i]['leftHandSize']/arrayOfGestureDetails[i]['rightHandSize']
+            ratioSecondByFirst = arrayOfGestureDetails[i]['rightHandSize']/arrayOfGestureDetails[i]['leftHandSize']
             if (ratioFirstBySecond > 0.95 and ratioFirstBySecond <= 1.1) or (ratioSecondByFirst > 0.95 and ratioSecondByFirst <= 1.1):
-                # if timeBetweenGestures > 3:
-                pyautogui.press("Space")
-                    # currentTime = time.process_time()
-                    # print(currentTime)
-                    # timeBetweenGestures =  currentTime - lastGesturesTime
-                    # lastGesturesTime = currentTime    
-                    
-                cv.putText(debug_image, "Play feature detected", (150,100), cv.FONT_HERSHEY_SIMPLEX,1, (0,0,0),3)
+                arrayOfGestureDetails[i]['handDistanceSame'] = True
+        array = arrayOfGestureDetails
+        
+        countOfPause = 0
+        for gesture in arrayOfGestureDetails:
+            if gesture['leftHandGesture'] == 4:
+                countOfPause += 1
+        
+        pauseDetectionThresh = fps/2 if fps/2 <= 12 else 12
+        playDetectionThresh = fps/4 if fps/4 <= 20 else 20
+        if countOfPause >= pauseDetectionThresh and lastGestures != 'Pause':
+            lastGestures = 'Pause'
+            pyautogui.press('Space')        
+        
+        elif array[0]['leftHandGesture'] == 5:
+            startLocation_X , startLocation_Y = array[0]['leftHandLocation']
+            key = 'leftHandGesture'
+            count = 0
+            # countForDown = 1
+            # handNotGoingUp = 0
+            handLocationstatic = 0
+            for i in range(39):
+                if array[i+1][key] == 1:
+                    location_X, location_Y = array[i+1]['leftHandLocation']
+                    if location_Y >= startLocation_Y - 15:
+                        handLocationstatic += 1
+                    count += 1
+            if count >= playDetectionThresh and handLocationstatic >= playDetectionThresh/2:
+                if lastGestures != 'Play':
+                    lastGestures = 'Play'
+                    pyautogui.press("Space")
         # Screen reflection #############################################################
         cv.imshow('Hand Gesture Recognition', debug_image)
-
     cap.release()
     cv.destroyAllWindows()
 
+def calc_location(landmark_list):
+    midpointOfPartA = ((landmark_list[0][0] - landmark_list[5][0])/2, (landmark_list[0][1] - landmark_list[5][1])/2)
+    midpointOfPartB = ((landmark_list[1][0] - landmark_list[17][0])/2, (landmark_list[1][1] - landmark_list[17][1])/2)
+    partA_X, partA_Y = midpointOfPartA
+    partB_X, partB_Y = midpointOfPartB
+    return ((partA_X-partB_X)/2 , (partA_Y - partB_Y)/2)
 
+def checkForMotion(array):
+    if checkForPause(array) != None:
+        return 'Pause'
+    elif checkForPlay(array) != None:
+        return 'Play'
+    return None
+
+def checkForPause(array):
+    countOfPauseGesture = 0
+    for i in range(30):
+        if array[i]['leftHandGesture'] == 4:
+            countOfPauseGesture += 1
+    if countOfPauseGesture > 0: 
+        return 'Pause'
+    return None
+
+def checkForPlay(array):
+        if array[0]['leftHandGesture'] == 1 and array[0]['rightHandGesture'] == 1:
+            # print('here we go')
+            count = 0
+            countForDown = 1
+            handNotGoingUp = 0
+             
+            for i in range(29):
+                if array[i+1]['leftHandGesture'] == 2 and array[i+1]['rightHandGesture'] == 2 :
+                    count += 1
+                if array[i+1]['leftHandGesture'] == 1 and array[i+1]['rightHandGesture'] == 1 :
+                    countForDown += 1
+            if count >= 25 and countForDown == 1 and handNotGoingUp <= 2:
+                return 'Play'
+        return None
 def select_mode(key, mode):
     number = -1
     if 48 <= key <= 57:  # 0 ~ 9
