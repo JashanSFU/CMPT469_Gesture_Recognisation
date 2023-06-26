@@ -105,7 +105,7 @@ def main():
     mode = 0
     # palms facing detection details
     arrayOfGestureDetails = []
-    for i in range(40):
+    for i in range(30):
         twoHands = {}
         twoHands['detected'] = False
         twoHands['leftHandGesture'] = None
@@ -119,7 +119,7 @@ def main():
     frame = 0
     while True:
         frame += 1
-        for i in range(39):
+        for i in range(29):
             
             arrayOfGestureDetails[i]['detected'] = arrayOfGestureDetails[i+1]['detected']
             arrayOfGestureDetails[i]['leftHandGesture'] = arrayOfGestureDetails[i+1]['leftHandGesture'] 
@@ -130,7 +130,7 @@ def main():
             arrayOfGestureDetails[i]['rightHandSize'] = arrayOfGestureDetails[i+1]['rightHandSize']
             arrayOfGestureDetails[i]['handDistanceSame'] = arrayOfGestureDetails[i+1]['handDistanceSame'] 
         # for i in range(20):
-        i = 39
+        i = 29
         arrayOfGestureDetails[i]['detected'] = False
         arrayOfGestureDetails[i]['leftHandGesture'] = None
         arrayOfGestureDetails[i]['rightHandGesture'] = None
@@ -245,11 +245,11 @@ def main():
             if gesture['leftHandGesture'] == 4:
                 countOfPause += 1
         
-        pauseDetectionThresh = fps/2 if fps/2 <= 12 else 12
-        playDetectionThresh = fps/4 if fps/4 <= 20 else 20
+        pauseDetectionThresh = fps/2 if fps/2 <= 7 else 7
+        playDetectionThresh = fps/4 if fps/4 <= 10  else 10
         if countOfPause >= pauseDetectionThresh and lastGestures != 'Pause':
             lastGestures = 'Pause'
-            pyautogui.press('Space')        
+            pyautogui.press('x')        
         
         elif array[0]['leftHandGesture'] == 5:
             startLocation_X , startLocation_Y = array[0]['leftHandLocation']
@@ -258,7 +258,7 @@ def main():
             # countForDown = 1
             # handNotGoingUp = 0
             handLocationstatic = 0
-            for i in range(39):
+            for i in range(29):
                 if array[i+1][key] == 1:
                     location_X, location_Y = array[i+1]['leftHandLocation']
                     if location_Y >= startLocation_Y - 15:
@@ -267,7 +267,7 @@ def main():
             if count >= playDetectionThresh and handLocationstatic >= playDetectionThresh/2:
                 if lastGestures != 'Play':
                     lastGestures = 'Play'
-                    pyautogui.press("Space")
+                    pyautogui.press("z")
         # Screen reflection #############################################################
         cv.imshow('Hand Gesture Recognition', debug_image)
     cap.release()
