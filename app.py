@@ -42,6 +42,7 @@ def get_args():
 
 
 def main():
+    pyautogui.PAUSE = 0
     lastGestures = None
     # timeBetweenGestures = float('inf')
     # currentGestureTime = None
@@ -74,7 +75,7 @@ def main():
 
     keypoint_classifier = KeyPointClassifier()
 
-    point_history_classifier = PointHistoryClassifier()
+    # point_history_classifier = PointHistoryClassifier()
 
     # Read labels ###########################################################
     with open('model/keypoint_classifier/keypoint_classifier_label.csv',
@@ -83,13 +84,13 @@ def main():
         keypoint_classifier_labels = [
             row[0] for row in keypoint_classifier_labels
         ]
-    with open(
-            'model/point_history_classifier/point_history_classifier_label.csv',
-            encoding='utf-8-sig') as f:
-        point_history_classifier_labels = csv.reader(f)
-        point_history_classifier_labels = [
-            row[0] for row in point_history_classifier_labels
-        ]
+    # with open(
+    #         'model/point_history_classifier/point_history_classifier_label.csv',
+    #         encoding='utf-8-sig') as f:
+    #     point_history_classifier_labels = csv.reader(f)
+    #     point_history_classifier_labels = [
+    #         row[0] for row in point_history_classifier_labels
+    #     ]
 
     # FPS Measurement ########################################################
     cvFpsCalc = CvFpsCalc(buffer_len=10)
@@ -112,11 +113,14 @@ def main():
         twoHands['rightHandGesture'] = None
         twoHands['leftHandLocation'] = None
         twoHands['rightHandLocation'] = None
+        twoHands['leftHandLandmarks'] = None
+        twoHands['rightHandLandmarks'] = None
         twoHands['leftHandSize'] = 0.0
         twoHands['rightHandSize'] = 0.0
         twoHands['handDistanceSame'] = False
         arrayOfGestureDetails.append(twoHands)
     frame = 0
+    lastRotationStartIndex = -1
     while True:
         frame += 1
         for i in range(29):
@@ -125,7 +129,9 @@ def main():
             arrayOfGestureDetails[i]['leftHandGesture'] = arrayOfGestureDetails[i+1]['leftHandGesture'] 
             arrayOfGestureDetails[i]['rightHandGesture'] = arrayOfGestureDetails[i+1]['rightHandGesture']
             arrayOfGestureDetails[i]['leftHandLocation'] = arrayOfGestureDetails[i+1]['leftHandLocation']
-            arrayOfGestureDetails[i]['rightHandLocation'] = arrayOfGestureDetails[i+1]['rightHandLocation']
+            arrayOfGestureDetails[i]['rightHandLocation'] = arrayOfGestureDetails[i+1]['rightHandLocation']            
+            arrayOfGestureDetails[i]['leftHandLandmarks'] = arrayOfGestureDetails[i+1]['leftHandLandmarks']
+            arrayOfGestureDetails[i]['rightHandLandmarks'] = arrayOfGestureDetails[i+1]['rightHandLandmarks']
             arrayOfGestureDetails[i]['leftHandSize'] = arrayOfGestureDetails[i+1]['leftHandSize']
             arrayOfGestureDetails[i]['rightHandSize'] = arrayOfGestureDetails[i+1]['rightHandSize']
             arrayOfGestureDetails[i]['handDistanceSame'] = arrayOfGestureDetails[i+1]['handDistanceSame'] 
@@ -136,6 +142,8 @@ def main():
         arrayOfGestureDetails[i]['rightHandGesture'] = None
         arrayOfGestureDetails[i]['leftHandLocation'] = None
         arrayOfGestureDetails[i]['rightHandLocation'] = None
+        arrayOfGestureDetails[i]['leftHandLandmarks'] = None
+        arrayOfGestureDetails[i]['rightHandLandmarks'] = None
         arrayOfGestureDetails[i]['leftHandSize'] = 0.0
         arrayOfGestureDetails[i]['rightHandSize'] = 0.0
         arrayOfGestureDetails[i]['handDistanceSame'] = False
@@ -179,8 +187,7 @@ def main():
                 pre_processed_point_history_list = pre_process_point_history(
                     debug_image, point_history)
                 # Write to the dataset file
-                logging_csv(number, mode, pre_processed_landmark_list,
-                            pre_processed_point_history_list)
+                logging_csv(number, mode, pre_processed_landmark_list)
 
                 # Hand sign classification
                 hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
@@ -188,18 +195,6 @@ def main():
                     point_history.append(landmark_list[8])
                 else:
                     point_history.append([0, 0])
-
-                # Finger gesture classification
-                finger_gesture_id = 0
-                point_history_len = len(pre_processed_point_history_list)
-                if point_history_len == (history_length * 2):
-                    finger_gesture_id = point_history_classifier(
-                        pre_processed_point_history_list)
-
-                # Calculates the gesture IDs in the latest detection
-                finger_gesture_history.append(finger_gesture_id)
-                most_common_fg_id = Counter(
-                    finger_gesture_history).most_common()
 
                 # Drawing part
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
@@ -213,18 +208,19 @@ def main():
                     arrayOfGestureDetails[i]['leftHandGesture'] = hand_sign_id
                     arrayOfGestureDetails[i]['leftHandLocation'] = landmark_list[0] #calc_location(landmark_list)
                     arrayOfGestureDetails[i]['leftHandSize'] = distance(landmark_list)
+                    arrayOfGestureDetails[i]['leftHandLandmarks'] = landmark_list
                 else:
                     arrayOfGestureDetails[i]['rightHandLocation'] = landmark_list[0] #calc_location(landmark_list)
                     arrayOfGestureDetails[i]['rightHandSize'] = distance(landmark_list)
                     arrayOfGestureDetails[i]['rightHandGesture'] = hand_sign_id
+                    arrayOfGestureDetails[i]['rightHandLandmarks'] = landmark_list
  
 
                 debug_image = draw_info_text(
                     debug_image,
                     brect,
                     handedness,
-                    keypoint_classifier_labels[hand_sign_id],
-                    point_history_classifier_labels[most_common_fg_id[0][0]],
+                    keypoint_classifier_labels[hand_sign_id]
                 )
         else:
             point_history.append([0, 0])
@@ -241,16 +237,30 @@ def main():
         array = arrayOfGestureDetails
         
         countOfPause = 0
-        for gesture in arrayOfGestureDetails:
+        countOfRotation = 0
+        indexFirstRotationDetected = -1
+        indexLastRotationDetected = -1
+        noRotationBetweenFirstLastRotation = 0
+        for index, gesture in enumerate(arrayOfGestureDetails):
             if gesture['leftHandGesture'] == 4:
                 countOfPause += 1
+            elif gesture['leftHandGesture'] == 6:
+                countOfRotation += 1
+                indexLastRotationDetected = index
+                if indexFirstRotationDetected == -1:
+                    indexFirstRotationDetected = index
+            elif index < indexLastRotationDetected and index > indexFirstRotationDetected:
+                noRotationBetweenFirstLastRotation += 1
         
+        if indexFirstRotationDetected == -1:
+            lastRotationStartIndex = -1
         pauseDetectionThresh = fps/2 if fps/2 <= 7 else 7
         playDetectionThresh = fps/4 if fps/4 <= 10  else 10
+        # rotationDetectionThresh
         if countOfPause >= pauseDetectionThresh and lastGestures != 'Pause':
             lastGestures = 'Pause'
-            pyautogui.press('x')        
-        
+            pyautogui.press('Space', _pause = False)        
+
         elif array[0]['leftHandGesture'] == 5:
             startLocation_X , startLocation_Y = array[0]['leftHandLocation']
             key = 'leftHandGesture'
@@ -267,8 +277,22 @@ def main():
             if count >= playDetectionThresh and handLocationstatic >= playDetectionThresh/2:
                 if lastGestures != 'Play':
                     lastGestures = 'Play'
-                    pyautogui.press("z")
-        # Screen reflection #############################################################
+                    pyautogui.press('Space', _pause = False)
+        elif indexFirstRotationDetected != -1 and noRotationBetweenFirstLastRotation < (indexLastRotationDetected - indexFirstRotationDetected)/4 and lastRotationStartIndex <= indexFirstRotationDetected + 5:
+            #calculations!
+            if indexFirstRotationDetected != 0 or lastRotationStartIndex > indexLastRotationDetected: 
+                landmarksForStart = array[indexFirstRotationDetected]['leftHandLandmarks']
+                landmarksForLast = array[indexLastRotationDetected]['leftHandLandmarks']
+                vector1 = (landmarksForStart[8][0] - landmarksForStart[0][0], landmarksForStart[8][1] - landmarksForStart[0][1])
+                vector2 = (landmarksForLast[8][0] - landmarksForLast[0][0], landmarksForLast[8][1] - landmarksForLast[0][1])
+                
+                pyautogui.press('-') if vector1[1] >= vector2[1] else pyautogui.press('+')
+                skip = angle_between(vector1,vector2)
+                degreeMeasure = math.degrees(skip) // 18
+                if degreeMeasure < 10:
+                    lastRotationStartIndex = indexFirstRotationDetected
+                    # lastGestures = {'gesture': 'rotation', 'degree': degreeMeasure}
+                    pyautogui.press(str(int(degreeMeasure)), _pause = False)              
         cv.imshow('Hand Gesture Recognition', debug_image)
     cap.release()
     cv.destroyAllWindows()
@@ -408,7 +432,7 @@ def pre_process_point_history(image, point_history):
     return temp_point_history
 
 
-def logging_csv(number, mode, landmark_list, point_history_list):
+def logging_csv(number, mode, landmark_list):
     if mode == 0:
         pass
     if mode == 1 and (0 <= number <= 9):
@@ -416,11 +440,6 @@ def logging_csv(number, mode, landmark_list, point_history_list):
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *landmark_list])
-    if mode == 2 and (0 <= number <= 9):
-        csv_path = 'model/point_history_classifier/point_history.csv'
-        with open(csv_path, 'a', newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow([number, *point_history_list])
     return
 
 
@@ -621,8 +640,7 @@ def draw_bounding_rect(use_brect, image, brect):
     return image
 
 
-def draw_info_text(image, brect, handedness, hand_sign_text,
-                   finger_gesture_text):
+def draw_info_text(image, brect, handedness, hand_sign_text):
     cv.rectangle(image, (brect[0], brect[1]), (brect[2], brect[1] - 22),
                  (0, 0, 0), -1)
 
@@ -631,14 +649,6 @@ def draw_info_text(image, brect, handedness, hand_sign_text,
         info_text = info_text + ':' + hand_sign_text
     cv.putText(image, info_text, (brect[0] + 5, brect[1] - 4),
                cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv.LINE_AA)
-
-    if finger_gesture_text != "":
-        cv.putText(image, "Finger Gesture:" + finger_gesture_text, (10, 60),
-                   cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 4, cv.LINE_AA)
-        cv.putText(image, "Finger Gesture:" + finger_gesture_text, (10, 60),
-                   cv.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2,
-                   cv.LINE_AA)
-
     return image
 
 
@@ -688,6 +698,24 @@ def draw_info(image, fps, mode, number):
                        cv.LINE_AA)
     return image
 
+
+def unit_vector(vector):
+    """ Returns the unit vector of the vector.  """
+    return vector / np.linalg.norm(vector)
+
+def angle_between(v1, v2):
+    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+
+            >>> angle_between((1, 0, 0), (0, 1, 0))
+            1.5707963267948966
+            >>> angle_between((1, 0, 0), (1, 0, 0))
+            0.0
+            >>> angle_between((1, 0, 0), (-1, 0, 0))
+            3.141592653589793
+    """
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
 
 if __name__ == '__main__':
     main()
