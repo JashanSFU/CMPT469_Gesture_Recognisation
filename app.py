@@ -118,9 +118,12 @@ def main():
         twoHands['leftHandSize'] = 0.0
         twoHands['rightHandSize'] = 0.0
         twoHands['handDistanceSame'] = False
+        twoHands['leftProcessed'] = False
+        twoHands['rightProcessed'] = False
         arrayOfGestureDetails.append(twoHands)
     frame = 0
     lastRotationStartIndex = -1
+    lastRotationEndIndex = -1
     while True:
         frame += 1
         for i in range(29):
@@ -135,6 +138,8 @@ def main():
             arrayOfGestureDetails[i]['leftHandSize'] = arrayOfGestureDetails[i+1]['leftHandSize']
             arrayOfGestureDetails[i]['rightHandSize'] = arrayOfGestureDetails[i+1]['rightHandSize']
             arrayOfGestureDetails[i]['handDistanceSame'] = arrayOfGestureDetails[i+1]['handDistanceSame'] 
+            arrayOfGestureDetails[i]['leftProcessed'] = arrayOfGestureDetails[i]['leftProcessed']
+            arrayOfGestureDetails[i]['rightProcessed'] = arrayOfGestureDetails[i]['rightProcessed']
         # for i in range(20):
         i = 29
         arrayOfGestureDetails[i]['detected'] = False
@@ -147,6 +152,8 @@ def main():
         arrayOfGestureDetails[i]['leftHandSize'] = 0.0
         arrayOfGestureDetails[i]['rightHandSize'] = 0.0
         arrayOfGestureDetails[i]['handDistanceSame'] = False
+        arrayOfGestureDetails[i]['leftProcessed'] = False
+        arrayOfGestureDetails[i]['rightProcessed'] = False
         
         fps = cvFpsCalc.get()
 
@@ -184,8 +191,8 @@ def main():
                 # Conversion to relative coordinates / normalized coordinates
                 pre_processed_landmark_list = pre_process_landmark(
                     landmark_list)
-                pre_processed_point_history_list = pre_process_point_history(
-                    debug_image, point_history)
+                # pre_processed_point_history_list = pre_process_point_history(
+                #     debug_image, point_history)
                 # Write to the dataset file
                 logging_csv(number, mode, pre_processed_landmark_list)
 
@@ -245,7 +252,8 @@ def main():
                 countOfPause += 1
             elif gesture['leftHandGesture'] == 6:
                 countOfRotation += 1
-                indexLastRotationDetected = index
+                if gesture['leftProcessed'] == False:
+                    indexLastRotationDetected = index
                 if indexFirstRotationDetected == -1:
                     indexFirstRotationDetected = index
             elif index < indexLastRotationDetected and index > indexFirstRotationDetected:
@@ -293,6 +301,8 @@ def main():
                         arrayOfGestureDetails[i]['leftHandSize'] = 0.0
                         arrayOfGestureDetails[i]['rightHandSize'] = 0.0
                         arrayOfGestureDetails[i]['handDistanceSame'] = False
+                        arrayOfGestureDetails[i]['leftProcessed'] = False
+                        arrayOfGestureDetails[i]['rightProcessed'] = False
                 elif leftEndLocation_X < leftStartLocation_X - 50 and rightEndLocation_X < rightStartLocation_X - 50:
                     pyautogui.press('m', _pause = False)
                     lastGestures = 'swipe next'
@@ -307,7 +317,8 @@ def main():
                         arrayOfGestureDetails[i]['leftHandSize'] = 0.0
                         arrayOfGestureDetails[i]['rightHandSize'] = 0.0
                         arrayOfGestureDetails[i]['handDistanceSame'] = False
-      
+                        arrayOfGestureDetails[i]['leftProcessed'] = False
+                        arrayOfGestureDetails[i]['rightProcessed'] = False
 
         elif array[0]['leftHandGesture'] == 5:
             startLocation_X , startLocation_Y = array[0]['leftHandLocation']
@@ -327,27 +338,45 @@ def main():
                     lastGestures = 'Play'
                     pyautogui.press('z', _pause = False)
         
-        elif indexFirstRotationDetected != -1 and noRotationBetweenFirstLastRotation < (indexLastRotationDetected - indexFirstRotationDetected)/3: #and countOfRotation <= rotationDetectionThresh:
+        elif indexFirstRotationDetected != -1 and indexLastRotationDetected != -1 and noRotationBetweenFirstLastRotation < (indexLastRotationDetected - indexFirstRotationDetected)/3: #and countOfRotation <= rotationDetectionThresh:
             #calculations!
-            if indexFirstRotationDetected != 0 or lastRotationStartIndex > indexLastRotationDetected: 
+            if indexFirstRotationDetected != 0: 
                 landmarksForStart = array[indexFirstRotationDetected]['leftHandLandmarks']
                 landmarksForLast = array[indexLastRotationDetected]['leftHandLandmarks']
-                vector1 = (landmarksForStart[8][0] - landmarksForStart[0][0], landmarksForStart[8][1] - landmarksForStart[0][1])
-                vector2 = (landmarksForLast[8][0] - landmarksForLast[0][0], landmarksForLast[8][1] - landmarksForLast[0][1])
+                landmarksForStart = pre_process_landmark(
+                    landmarksForStart)
+                landmarksForLast = pre_process_landmark(
+                    landmarksForLast)
+                # print(len(landmarksForLast1))
+                # vector1 = (landmarksForStart[8][0] - landmarksForStart[0][0], landmarksForStart[8][1] - landmarksForStart[0][1])
+                # vector2 = (landmarksForLast[8][0] - landmarksForLast[0][0], landmarksForLast[8][1] - landmarksForLast[0][1])
+                vector1 = (landmarksForStart[16] - landmarksForStart[0], landmarksForStart[17] - landmarksForStart[1])
+                vector2 = (landmarksForLast[16] - landmarksForLast[0], landmarksForLast[17] - landmarksForLast[1])
                 
-                # indication for skip forward and back
-                pyautogui.press('-') if vector1[1] >= vector2[1] else pyautogui.press('+')
-
-                #angle calculation
-                skip = angle_between(vector1,vector2)
-                degreeMeasure = math.degrees(skip) // 18
-          
-                #implementing key stroke
-                if degreeMeasure < 10:
-                    lastRotationStartIndex = indexFirstRotationDetected
-                    # lastGestures = {'gesture': 'rotation', 'degree': degreeMeasure}
-                    # print(degreeMeasure)
-                    pyautogui.press(str(int(degreeMeasure)), _pause = False)  
+                if (vector1 != vector2):
+                    # indication for skip forward and back
+                    # pyautogui.press('-') if vector1[1] >= vector2[1] else pyautogui.press('+')
+                    # detected = None
+                    if landmarksForStart[2] >= landmarksForLast[2]: #and landmarksForStart[10] >= landmarksForLast[10] and landmarksForStart[18] >= landmarksForLast[18]:
+                    #     detected = True
+                    # else: #elif landmarksForStart[2] < landmarksForLast[2] and landmarksForStart[10] < landmarksForLast[10] and landmarksForStart[18] < landmarksForLast[18]:
+                    #     detected = False
+                    # if detected == True:
+                    #     #angle calculation
+                        skip = angle_between(vector1,vector2)
+                        degreeMeasure = math.degrees(skip) // 18
+                
+                        #implementing key stroke
+                        if degreeMeasure < 10:
+                            lastRotationStartIndex = indexFirstRotationDetected
+                            lastRotationEndIndex = indexLastRotationDetected
+                            for i in range(indexLastRotationDetected - indexFirstRotationDetected + 1):
+                                arrayOfGestureDetails[indexFirstRotationDetected + i]['leftProcessed'] = True
+                                arrayOfGestureDetails[indexFirstRotationDetected + i]['rightProcessed'] = True
+                            # lastGestures = {'gesture': 'rotation', 'degree': degreeMeasure}
+                            # print(degreeMeasure)
+                            # pyautogui.press('-') if detected == True else pyautogui.press('+')
+                            pyautogui.press(str(int(degreeMeasure)), _pause = False)  
             else:
               for i in range(30):
                         arrayOfGestureDetails[i]['detected'] = False
@@ -360,7 +389,8 @@ def main():
                         arrayOfGestureDetails[i]['leftHandSize'] = 0.0
                         arrayOfGestureDetails[i]['rightHandSize'] = 0.0
                         arrayOfGestureDetails[i]['handDistanceSame'] = False
-
+                        arrayOfGestureDetails[i]['leftProcessed'] = True
+                        arrayOfGestureDetails[i]['rightProcessed'] = True
             
         cv.imshow('Hand Gesture Recognition', debug_image)
     cap.release()
