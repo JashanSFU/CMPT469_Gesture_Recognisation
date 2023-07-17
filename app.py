@@ -264,7 +264,7 @@ def main():
         pauseDetectionThresh = fps/2 if fps/2 <= 7 else 7
         playDetectionThresh = fps/4 if fps/4 <= 10  else 10
         swipeDetectionThresh = fps/2 if fps/4 <= 10 else 20
-        rotationDetectionThresh = fps/4 if fps/4 <= 7 else 7
+        rotationDetectionThresh = fps if fps <= 20 else 20
         # rotationDetectionThresh
         if countOfPause >= pauseDetectionThresh and lastGestures != 'Pause':
             lastGestures = 'Pause'
@@ -338,47 +338,31 @@ def main():
                     lastGestures = 'Play'
                     pyautogui.press('z', _pause = False)
         
-        elif indexFirstRotationDetected != -1 and indexLastRotationDetected != -1 and noRotationBetweenFirstLastRotation < (indexLastRotationDetected - indexFirstRotationDetected)/3: #and countOfRotation <= rotationDetectionThresh:
+        elif indexFirstRotationDetected != -1 and indexLastRotationDetected != -1 and noRotationBetweenFirstLastRotation < (indexLastRotationDetected - indexFirstRotationDetected)/3 and countOfRotation >= rotationDetectionThresh:
             #calculations!
-            if indexFirstRotationDetected != 0: 
                 landmarksForStart = array[indexFirstRotationDetected]['leftHandLandmarks']
                 landmarksForLast = array[indexLastRotationDetected]['leftHandLandmarks']
                 landmarksForStart = pre_process_landmark(
                     landmarksForStart)
                 landmarksForLast = pre_process_landmark(
                     landmarksForLast)
-                # print(len(landmarksForLast1))
-                # vector1 = (landmarksForStart[8][0] - landmarksForStart[0][0], landmarksForStart[8][1] - landmarksForStart[0][1])
-                # vector2 = (landmarksForLast[8][0] - landmarksForLast[0][0], landmarksForLast[8][1] - landmarksForLast[0][1])
-                vector1 = (landmarksForStart[16] - landmarksForStart[0], landmarksForStart[17] - landmarksForStart[1])
-                vector2 = (landmarksForLast[16] - landmarksForLast[0], landmarksForLast[17] - landmarksForLast[1])
                 
-                if (vector1 != vector2):
-                    # indication for skip forward and back
-                    # pyautogui.press('-') if vector1[1] >= vector2[1] else pyautogui.press('+')
-                    # detected = None
-                    if landmarksForStart[2] >= landmarksForLast[2]: #and landmarksForStart[10] >= landmarksForLast[10] and landmarksForStart[18] >= landmarksForLast[18]:
-                    #     detected = True
-                    # else: #elif landmarksForStart[2] < landmarksForLast[2] and landmarksForStart[10] < landmarksForLast[10] and landmarksForStart[18] < landmarksForLast[18]:
-                    #     detected = False
-                    # if detected == True:
-                    #     #angle calculation
-                        skip = angle_between(vector1,vector2)
-                        degreeMeasure = math.degrees(skip) // 18
+                vector1 = (landmarksForStart[17] - landmarksForStart[1], landmarksForStart[16] - landmarksForStart[0])
+                vector2 = (landmarksForLast[17] - landmarksForLast[1], landmarksForLast[16] - landmarksForLast[0])
+                adjustment = landmarksForLast[1] - landmarksForStart[1]
                 
-                        #implementing key stroke
-                        if degreeMeasure < 10:
-                            lastRotationStartIndex = indexFirstRotationDetected
-                            lastRotationEndIndex = indexLastRotationDetected
-                            for i in range(indexLastRotationDetected - indexFirstRotationDetected + 1):
-                                arrayOfGestureDetails[indexFirstRotationDetected + i]['leftProcessed'] = True
-                                arrayOfGestureDetails[indexFirstRotationDetected + i]['rightProcessed'] = True
-                            # lastGestures = {'gesture': 'rotation', 'degree': degreeMeasure}
-                            # print(degreeMeasure)
-                            # pyautogui.press('-') if detected == True else pyautogui.press('+')
-                            pyautogui.press(str(int(degreeMeasure)), _pause = False)  
-            else:
-              for i in range(30):
+
+                #angle calculation
+                skip = angle_between(vector1,vector2)
+                degreeMeasure = math.degrees(skip) // 18
+                # print(degreeMeasure)
+                if degreeMeasure > 3:
+                    if landmarksForStart[3] + adjustment >= landmarksForLast[3] :
+                        pyautogui.press('-')
+                    elif landmarksForStart[3] + adjustment < landmarksForLast[3]:
+                        pyautogui.press('+')
+
+                for i in range(30):
                         arrayOfGestureDetails[i]['detected'] = False
                         arrayOfGestureDetails[i]['leftHandGesture'] = None
                         arrayOfGestureDetails[i]['rightHandGesture'] = None
