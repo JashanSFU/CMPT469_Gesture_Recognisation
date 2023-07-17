@@ -347,22 +347,13 @@ def main():
                     landmarksForStart)
                 landmarksForLast = pre_process_landmark(
                     landmarksForLast)
-                # print(len(landmarksForLast1))
-                # vector1 = (landmarksForStart[8][0] - landmarksForStart[0][0], landmarksForStart[8][1] - landmarksForStart[0][1])
-                # vector2 = (landmarksForLast[8][0] - landmarksForLast[0][0], landmarksForLast[8][1] - landmarksForLast[0][1])
-                vector1 = (landmarksForStart[16] - landmarksForStart[0], landmarksForStart[17] - landmarksForStart[1])
-                vector2 = (landmarksForLast[16] - landmarksForLast[0], landmarksForLast[17] - landmarksForLast[1])
-                
+              
+                vector1 = (landmarksForStart[17] - landmarksForStart[1], landmarksForStart[16] - landmarksForStart[0])
+                vector2 = (landmarksForLast[17] - landmarksForLast[1], landmarksForLast[16] - landmarksForLast[0])
+                adjustment = landmarksForLast[1] - landmarksForStart[1]
+
                 if (vector1 != vector2):
-                    # indication for skip forward and back
-                    # pyautogui.press('-') if vector1[1] >= vector2[1] else pyautogui.press('+')
-                    # detected = None
-                    if landmarksForStart[2] >= landmarksForLast[2]: #and landmarksForStart[10] >= landmarksForLast[10] and landmarksForStart[18] >= landmarksForLast[18]:
-                    #     detected = True
-                    # else: #elif landmarksForStart[2] < landmarksForLast[2] and landmarksForStart[10] < landmarksForLast[10] and landmarksForStart[18] < landmarksForLast[18]:
-                    #     detected = False
-                    # if detected == True:
-                    #     #angle calculation
+                    if landmarksForStart[3] + adjustment <= landmarksForLast[3]: 
                         skip = angle_between(vector1,vector2)
                         degreeMeasure = math.degrees(skip) // 18
                 
@@ -373,10 +364,7 @@ def main():
                             for i in range(indexLastRotationDetected - indexFirstRotationDetected + 1):
                                 arrayOfGestureDetails[indexFirstRotationDetected + i]['leftProcessed'] = True
                                 arrayOfGestureDetails[indexFirstRotationDetected + i]['rightProcessed'] = True
-                            # lastGestures = {'gesture': 'rotation', 'degree': degreeMeasure}
-                            # print(degreeMeasure)
-                            # pyautogui.press('-') if detected == True else pyautogui.press('+')
-                            pyautogui.press(str(int(degreeMeasure)), _pause = False)  
+                                pyautogui.press(str(int(degreeMeasure)), _pause = False)  
             else:
               for i in range(30):
                         arrayOfGestureDetails[i]['detected'] = False
