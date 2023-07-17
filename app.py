@@ -228,7 +228,6 @@ def main():
         debug_image = draw_point_history(debug_image, point_history)
         debug_image = draw_info(debug_image, fps, mode, number)
 
-        # if arrayOfGestureDetails[19]['rightHandGesture'] == 4 and arrayOfGestureDetails[19]['rightHandGesture'] == 4:
         if arrayOfGestureDetails[i]['leftHandSize'] != 0 and arrayOfGestureDetails[i]['rightHandSize'] != 0:
             ratioFirstBySecond = arrayOfGestureDetails[i]['leftHandSize']/arrayOfGestureDetails[i]['rightHandSize']
             ratioSecondByFirst = arrayOfGestureDetails[i]['rightHandSize']/arrayOfGestureDetails[i]['leftHandSize']
@@ -251,15 +250,64 @@ def main():
                     indexFirstRotationDetected = index
             elif index < indexLastRotationDetected and index > indexFirstRotationDetected:
                 noRotationBetweenFirstLastRotation += 1
-        
+       
         if indexFirstRotationDetected == -1:
             lastRotationStartIndex = -1
         pauseDetectionThresh = fps/2 if fps/2 <= 7 else 7
         playDetectionThresh = fps/4 if fps/4 <= 10  else 10
+        swipeDetectionThresh = fps/2 if fps/4 <= 10 else 20
+        rotationDetectionThresh = fps/4 if fps/4 <= 7 else 7
         # rotationDetectionThresh
         if countOfPause >= pauseDetectionThresh and lastGestures != 'Pause':
             lastGestures = 'Pause'
-            pyautogui.press('Space', _pause = False)        
+            pyautogui.press('x', _pause = False)        
+
+        elif array[0]['leftHandGesture'] == 5 and array[0]['rightHandGesture'] == 5:
+            leftHandCountOfSwipe = 0
+            rightHandCountOfSwipe = 0
+            lastHandIndexOfSwipe = [0,0]
+            for i in range(29):
+                if array[i+1]['leftHandGesture'] == 5:
+                    leftHandCountOfSwipe += 1
+                    lastHandIndexOfSwipe[0] = i+1
+                if array[i+1]['rightHandGesture'] == 5: 
+                    rightHandCountOfSwipe += 1
+                    lastHandIndexOfSwipe[1] = i+1
+            
+            if leftHandCountOfSwipe + rightHandCountOfSwipe >= swipeDetectionThresh:
+                leftStartLocation_X = array[0]['leftHandLandmarks'][0][0]
+                rightStartLocation_X = array[0]['rightHandLandmarks'][0][0]
+                leftEndLocation_X = array[lastHandIndexOfSwipe[0]]['leftHandLandmarks'][0][0]
+                rightEndLocation_X = array[lastHandIndexOfSwipe[1]]['rightHandLandmarks'][0][0]
+                if leftEndLocation_X > leftStartLocation_X + 50 and rightEndLocation_X > rightStartLocation_X + 50:
+                    pyautogui.press('n', _pause = False)
+                    lastGestures = 'swipe back'
+                    for i in range(30):
+                        arrayOfGestureDetails[i]['detected'] = False
+                        arrayOfGestureDetails[i]['leftHandGesture'] = None
+                        arrayOfGestureDetails[i]['rightHandGesture'] = None
+                        arrayOfGestureDetails[i]['leftHandLocation'] = None
+                        arrayOfGestureDetails[i]['rightHandLocation'] = None
+                        arrayOfGestureDetails[i]['leftHandLandmarks'] = None
+                        arrayOfGestureDetails[i]['rightHandLandmarks'] = None
+                        arrayOfGestureDetails[i]['leftHandSize'] = 0.0
+                        arrayOfGestureDetails[i]['rightHandSize'] = 0.0
+                        arrayOfGestureDetails[i]['handDistanceSame'] = False
+                elif leftEndLocation_X < leftStartLocation_X - 50 and rightEndLocation_X < rightStartLocation_X - 50:
+                    pyautogui.press('m', _pause = False)
+                    lastGestures = 'swipe next'
+                    for i in range(30):
+                        arrayOfGestureDetails[i]['detected'] = False
+                        arrayOfGestureDetails[i]['leftHandGesture'] = None
+                        arrayOfGestureDetails[i]['rightHandGesture'] = None
+                        arrayOfGestureDetails[i]['leftHandLocation'] = None
+                        arrayOfGestureDetails[i]['rightHandLocation'] = None
+                        arrayOfGestureDetails[i]['leftHandLandmarks'] = None
+                        arrayOfGestureDetails[i]['rightHandLandmarks'] = None
+                        arrayOfGestureDetails[i]['leftHandSize'] = 0.0
+                        arrayOfGestureDetails[i]['rightHandSize'] = 0.0
+                        arrayOfGestureDetails[i]['handDistanceSame'] = False
+      
 
         elif array[0]['leftHandGesture'] == 5:
             startLocation_X , startLocation_Y = array[0]['leftHandLocation']
@@ -277,8 +325,9 @@ def main():
             if count >= playDetectionThresh and handLocationstatic >= playDetectionThresh/2:
                 if lastGestures != 'Play':
                     lastGestures = 'Play'
-                    pyautogui.press('Space', _pause = False)
-        elif indexFirstRotationDetected != -1 and noRotationBetweenFirstLastRotation < (indexLastRotationDetected - indexFirstRotationDetected)/4 and lastRotationStartIndex <= indexFirstRotationDetected + 5:
+                    pyautogui.press('z', _pause = False)
+        
+        elif indexFirstRotationDetected != -1 and noRotationBetweenFirstLastRotation < (indexLastRotationDetected - indexFirstRotationDetected)/3: #and countOfRotation <= rotationDetectionThresh:
             #calculations!
             if indexFirstRotationDetected != 0 or lastRotationStartIndex > indexLastRotationDetected: 
                 landmarksForStart = array[indexFirstRotationDetected]['leftHandLandmarks']
@@ -286,13 +335,33 @@ def main():
                 vector1 = (landmarksForStart[8][0] - landmarksForStart[0][0], landmarksForStart[8][1] - landmarksForStart[0][1])
                 vector2 = (landmarksForLast[8][0] - landmarksForLast[0][0], landmarksForLast[8][1] - landmarksForLast[0][1])
                 
+                # indication for skip forward and back
                 pyautogui.press('-') if vector1[1] >= vector2[1] else pyautogui.press('+')
+
+                #angle calculation
                 skip = angle_between(vector1,vector2)
                 degreeMeasure = math.degrees(skip) // 18
+          
+                #implementing key stroke
                 if degreeMeasure < 10:
                     lastRotationStartIndex = indexFirstRotationDetected
                     # lastGestures = {'gesture': 'rotation', 'degree': degreeMeasure}
-                    pyautogui.press(str(int(degreeMeasure)), _pause = False)              
+                    # print(degreeMeasure)
+                    pyautogui.press(str(int(degreeMeasure)), _pause = False)  
+            else:
+              for i in range(30):
+                        arrayOfGestureDetails[i]['detected'] = False
+                        arrayOfGestureDetails[i]['leftHandGesture'] = None
+                        arrayOfGestureDetails[i]['rightHandGesture'] = None
+                        arrayOfGestureDetails[i]['leftHandLocation'] = None
+                        arrayOfGestureDetails[i]['rightHandLocation'] = None
+                        arrayOfGestureDetails[i]['leftHandLandmarks'] = None
+                        arrayOfGestureDetails[i]['rightHandLandmarks'] = None
+                        arrayOfGestureDetails[i]['leftHandSize'] = 0.0
+                        arrayOfGestureDetails[i]['rightHandSize'] = 0.0
+                        arrayOfGestureDetails[i]['handDistanceSame'] = False
+
+            
         cv.imshow('Hand Gesture Recognition', debug_image)
     cap.release()
     cv.destroyAllWindows()
