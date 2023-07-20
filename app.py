@@ -106,7 +106,7 @@ def main():
     mode = 0
     # palms facing detection details
     arrayOfGestureDetails = []
-    for i in range(30):
+    for i in range(60):
         twoHands = {}
         twoHands['detected'] = False
         twoHands['leftHandGesture'] = None
@@ -126,7 +126,7 @@ def main():
     lastRotationEndIndex = -1
     while True:
         frame += 1
-        for i in range(29):
+        for i in range(59):
             
             arrayOfGestureDetails[i]['detected'] = arrayOfGestureDetails[i+1]['detected']
             arrayOfGestureDetails[i]['leftHandGesture'] = arrayOfGestureDetails[i+1]['leftHandGesture'] 
@@ -140,8 +140,8 @@ def main():
             arrayOfGestureDetails[i]['handDistanceSame'] = arrayOfGestureDetails[i+1]['handDistanceSame'] 
             arrayOfGestureDetails[i]['leftProcessed'] = arrayOfGestureDetails[i]['leftProcessed']
             arrayOfGestureDetails[i]['rightProcessed'] = arrayOfGestureDetails[i]['rightProcessed']
-        # for i in range(20):
-        i = 29
+      
+        i = 59
         arrayOfGestureDetails[i]['detected'] = False
         arrayOfGestureDetails[i]['leftHandGesture'] = None
         arrayOfGestureDetails[i]['rightHandGesture'] = None
@@ -247,10 +247,13 @@ def main():
         indexFirstRotationDetected = -1
         indexLastRotationDetected = -1
         noRotationBetweenFirstLastRotation = 0
-        for index, gesture in enumerate(arrayOfGestureDetails):
+        for index in range(30):
+            gesture = arrayOfGestureDetails[index + 30]
             if gesture['leftHandGesture'] == 4:
                 countOfPause += 1
-            elif gesture['leftHandGesture'] == 6:
+
+        for index, gesture in enumerate(arrayOfGestureDetails):  
+            if gesture['leftHandGesture'] == 6:
                 countOfRotation += 1
                 if gesture['leftProcessed'] == False:
                     indexLastRotationDetected = index
@@ -261,82 +264,110 @@ def main():
        
         if indexFirstRotationDetected == -1:
             lastRotationStartIndex = -1
+        
         pauseDetectionThresh = fps/2 if fps/2 <= 7 else 7
         playDetectionThresh = fps/4 if fps/4 <= 10  else 10
         swipeDetectionThresh = fps/2 if fps/4 <= 10 else 20
         rotationDetectionThresh = fps/4 if fps/4 <= 7 else 7
-        # rotationDetectionThresh
+       
         if countOfPause >= pauseDetectionThresh and lastGestures != 'Pause':
-            lastGestures = 'Pause'
-            pyautogui.press('x', _pause = False)        
+            # lastGestures = 'Pause'
+            pyautogui.press('x', _pause = False)
+            for i in range(30):
+                        arrayOfGestureDetails[i + 30]['detected'] = False
+                        arrayOfGestureDetails[i + 30]['leftHandGesture'] = None
+                        arrayOfGestureDetails[i + 30]['rightHandGesture'] = None
+                        arrayOfGestureDetails[i + 30]['leftHandLocation'] = None
+                        arrayOfGestureDetails[i + 30]['rightHandLocation'] = None
+                        arrayOfGestureDetails[i + 30]['leftHandLandmarks'] = None
+                        arrayOfGestureDetails[i + 30]['rightHandLandmarks'] = None
+                        arrayOfGestureDetails[i + 30]['leftHandSize'] = 0.0
+                        arrayOfGestureDetails[i + 30]['rightHandSize'] = 0.0
+                        arrayOfGestureDetails[i + 30]['handDistanceSame'] = False
+                        arrayOfGestureDetails[i + 30]['leftProcessed'] = True
+                        arrayOfGestureDetails[i + 30]['rightProcessed'] = True        
 
-        elif array[0]['leftHandGesture'] == 5 and array[0]['rightHandGesture'] == 5:
+        elif array[30]['leftHandGesture'] == 5 and array[30]['rightHandGesture'] == 5:
             leftHandCountOfSwipe = 0
             rightHandCountOfSwipe = 0
             lastHandIndexOfSwipe = [0,0]
             for i in range(29):
-                if array[i+1]['leftHandGesture'] == 5:
+                if array[i+31]['leftHandGesture'] == 5:
                     leftHandCountOfSwipe += 1
                     lastHandIndexOfSwipe[0] = i+1
-                if array[i+1]['rightHandGesture'] == 5: 
+                if array[i+31]['rightHandGesture'] == 5: 
                     rightHandCountOfSwipe += 1
                     lastHandIndexOfSwipe[1] = i+1
             
             if leftHandCountOfSwipe + rightHandCountOfSwipe >= swipeDetectionThresh:
-                leftStartLocation_X = array[0]['leftHandLandmarks'][0][0]
-                rightStartLocation_X = array[0]['rightHandLandmarks'][0][0]
+                leftStartLocation_X = array[30]['leftHandLandmarks'][0][0]
+                rightStartLocation_X = array[30]['rightHandLandmarks'][0][0]
                 leftEndLocation_X = array[lastHandIndexOfSwipe[0]]['leftHandLandmarks'][0][0]
                 rightEndLocation_X = array[lastHandIndexOfSwipe[1]]['rightHandLandmarks'][0][0]
                 if leftEndLocation_X > leftStartLocation_X + 50 and rightEndLocation_X > rightStartLocation_X + 50:
                     pyautogui.press('n', _pause = False)
                     lastGestures = 'swipe back'
                     for i in range(30):
-                        arrayOfGestureDetails[i]['detected'] = False
-                        arrayOfGestureDetails[i]['leftHandGesture'] = None
-                        arrayOfGestureDetails[i]['rightHandGesture'] = None
-                        arrayOfGestureDetails[i]['leftHandLocation'] = None
-                        arrayOfGestureDetails[i]['rightHandLocation'] = None
-                        arrayOfGestureDetails[i]['leftHandLandmarks'] = None
-                        arrayOfGestureDetails[i]['rightHandLandmarks'] = None
-                        arrayOfGestureDetails[i]['leftHandSize'] = 0.0
-                        arrayOfGestureDetails[i]['rightHandSize'] = 0.0
-                        arrayOfGestureDetails[i]['handDistanceSame'] = False
-                        arrayOfGestureDetails[i]['leftProcessed'] = False
-                        arrayOfGestureDetails[i]['rightProcessed'] = False
+                        arrayOfGestureDetails[i + 30]['detected'] = False
+                        arrayOfGestureDetails[i + 30]['leftHandGesture'] = None
+                        arrayOfGestureDetails[i + 30]['rightHandGesture'] = None
+                        arrayOfGestureDetails[i + 30]['leftHandLocation'] = None
+                        arrayOfGestureDetails[i + 30]['rightHandLocation'] = None
+                        arrayOfGestureDetails[i + 30]['leftHandLandmarks'] = None
+                        arrayOfGestureDetails[i + 30]['rightHandLandmarks'] = None
+                        arrayOfGestureDetails[i + 30]['leftHandSize'] = 0.0
+                        arrayOfGestureDetails[i + 30]['rightHandSize'] = 0.0
+                        arrayOfGestureDetails[i + 30]['handDistanceSame'] = False
+                        arrayOfGestureDetails[i + 30]['leftProcessed'] = False
+                        arrayOfGestureDetails[i + 30]['rightProcessed'] = False
                 elif leftEndLocation_X < leftStartLocation_X - 50 and rightEndLocation_X < rightStartLocation_X - 50:
                     pyautogui.press('m', _pause = False)
                     lastGestures = 'swipe next'
                     for i in range(30):
-                        arrayOfGestureDetails[i]['detected'] = False
-                        arrayOfGestureDetails[i]['leftHandGesture'] = None
-                        arrayOfGestureDetails[i]['rightHandGesture'] = None
-                        arrayOfGestureDetails[i]['leftHandLocation'] = None
-                        arrayOfGestureDetails[i]['rightHandLocation'] = None
-                        arrayOfGestureDetails[i]['leftHandLandmarks'] = None
-                        arrayOfGestureDetails[i]['rightHandLandmarks'] = None
-                        arrayOfGestureDetails[i]['leftHandSize'] = 0.0
-                        arrayOfGestureDetails[i]['rightHandSize'] = 0.0
-                        arrayOfGestureDetails[i]['handDistanceSame'] = False
-                        arrayOfGestureDetails[i]['leftProcessed'] = False
-                        arrayOfGestureDetails[i]['rightProcessed'] = False
+                        arrayOfGestureDetails[i + 30]['detected'] = False
+                        arrayOfGestureDetails[i + 30]['leftHandGesture'] = None
+                        arrayOfGestureDetails[i + 30]['rightHandGesture'] = None
+                        arrayOfGestureDetails[i + 30]['leftHandLocation'] = None
+                        arrayOfGestureDetails[i + 30]['rightHandLocation'] = None
+                        arrayOfGestureDetails[i + 30]['leftHandLandmarks'] = None
+                        arrayOfGestureDetails[i + 30]['rightHandLandmarks'] = None
+                        arrayOfGestureDetails[i + 30]['leftHandSize'] = 0.0
+                        arrayOfGestureDetails[i + 30]['rightHandSize'] = 0.0
+                        arrayOfGestureDetails[i + 30]['handDistanceSame'] = False
+                        arrayOfGestureDetails[i + 30]['leftProcessed'] = False
+                        arrayOfGestureDetails[i + 30]['rightProcessed'] = False
 
-        elif array[0]['leftHandGesture'] == 5:
-            startLocation_X , startLocation_Y = array[0]['leftHandLocation']
+        elif array[30]['leftHandGesture'] == 5:
+            startLocation_X , startLocation_Y = array[30]['leftHandLocation']
             key = 'leftHandGesture'
             count = 0
             # countForDown = 1
             # handNotGoingUp = 0
             handLocationstatic = 0
             for i in range(29):
-                if array[i+1][key] == 1:
-                    location_X, location_Y = array[i+1]['leftHandLocation']
+                if array[i+31][key] == 1:
+                    location_X, location_Y = array[i+31]['leftHandLocation']
                     if location_Y >= startLocation_Y - 15:
                         handLocationstatic += 1
                     count += 1
             if count >= playDetectionThresh and handLocationstatic >= playDetectionThresh/2:
-                if lastGestures != 'Play':
-                    lastGestures = 'Play'
-                    pyautogui.press('z', _pause = False)
+                # if lastGestures != 'Play':
+                lastGestures = 'Play'
+                pyautogui.press('z', _pause = False)
+                
+                for i in range(30):
+                        arrayOfGestureDetails[i + 30]['detected'] = False
+                        arrayOfGestureDetails[i + 30]['leftHandGesture'] = None
+                        arrayOfGestureDetails[i + 30]['rightHandGesture'] = None
+                        arrayOfGestureDetails[i + 30]['leftHandLocation'] = None
+                        arrayOfGestureDetails[i + 30]['rightHandLocation'] = None
+                        arrayOfGestureDetails[i + 30]['leftHandLandmarks'] = None
+                        arrayOfGestureDetails[i + 30]['rightHandLandmarks'] = None
+                        arrayOfGestureDetails[i + 30]['leftHandSize'] = 0.0
+                        arrayOfGestureDetails[i + 30]['rightHandSize'] = 0.0
+                        arrayOfGestureDetails[i + 30]['handDistanceSame'] = False
+                        arrayOfGestureDetails[i + 30]['leftProcessed'] = True
+                        arrayOfGestureDetails[i + 30]['rightProcessed'] = True
         
         elif indexFirstRotationDetected != -1 and indexLastRotationDetected != -1 and noRotationBetweenFirstLastRotation < (indexLastRotationDetected - indexFirstRotationDetected)/3: #and countOfRotation <= rotationDetectionThresh:
             #calculations!
@@ -366,7 +397,7 @@ def main():
                                 arrayOfGestureDetails[indexFirstRotationDetected + i]['rightProcessed'] = True
                                 pyautogui.press(str(int(degreeMeasure)), _pause = False)  
             else:
-              for i in range(30):
+              for i in range(60):
                         arrayOfGestureDetails[i]['detected'] = False
                         arrayOfGestureDetails[i]['leftHandGesture'] = None
                         arrayOfGestureDetails[i]['rightHandGesture'] = None
