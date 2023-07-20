@@ -294,10 +294,10 @@ def main():
             for i in range(29):
                 if array[i+31]['leftHandGesture'] == 5:
                     leftHandCountOfSwipe += 1
-                    lastHandIndexOfSwipe[0] = i+1
+                    lastHandIndexOfSwipe[0] = i+31
                 if array[i+31]['rightHandGesture'] == 5: 
                     rightHandCountOfSwipe += 1
-                    lastHandIndexOfSwipe[1] = i+1
+                    lastHandIndexOfSwipe[1] = i+31
             
             if leftHandCountOfSwipe + rightHandCountOfSwipe >= swipeDetectionThresh:
                 leftStartLocation_X = array[30]['leftHandLandmarks'][0][0]
