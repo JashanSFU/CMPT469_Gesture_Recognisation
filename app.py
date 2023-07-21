@@ -290,7 +290,7 @@ def main():
         elif array[30]['leftHandGesture'] == 5 and array[30]['rightHandGesture'] == 5:
             leftHandCountOfSwipe = 0
             rightHandCountOfSwipe = 0
-            lastHandIndexOfSwipe = [0,0]
+            lastHandIndexOfSwipe = [30,30]
             for i in range(29):
                 if array[i+31]['leftHandGesture'] == 5:
                     leftHandCountOfSwipe += 1
